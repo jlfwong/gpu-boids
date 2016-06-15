@@ -6,15 +6,10 @@ precision mediump float;
 
 uniform float height;
 uniform float width;
+uniform sampler2D boidData;
 
 varying vec2 vTextureCoord;
 
-vec4 computeElement(float s, float t) {
-  float i = floor(width*s);
-  float j = floor(height*t);
-  return vec4(s, t, 0, 1);
-}
-
 void main() {
-  gl_FragColor = computeElement(vTextureCoord.s, vTextureCoord.t);
+  gl_FragColor = texture2D(boidData, vec2(vTextureCoord.s, vTextureCoord.t));
 }

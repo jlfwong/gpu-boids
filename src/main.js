@@ -18,11 +18,25 @@ const boidTimeStepFragmentShader = gpgpu.compileFragmentShader(
 
 const program = gpgpu.compileProgram(vertexShader, boidTimeStepFragmentShader);
 
-gpgpu.useStandardGeometry(program);
+const initialBoidData = new Float32Array(4 * WIDTH * HEIGHT);
 
+for (let i = 0; i < HEIGHT; i++) {
+  for (let j = 0; j < WIDTH; j++) {
+    const pos = 4 * (i * HEIGHT + j);
+    initialBoidData[pos + 0] = Math.floor(j / 10) % 2 == 0 ? 1 : 0;
+    initialBoidData[pos + 1] = 0;
+    initialBoidData[pos + 2] = 0;
+    initialBoidData[pos + 3] = 1.0;
+  }
+}
+
+const boidsTextureA = gpgpu.makeTexture(WIDTH, HEIGHT, initialBoidData);
+
+gpgpu.useStandardGeometry(program);
 gpgpu.standardRender(program, {
   width: WIDTH,
-  height: HEIGHT
+  height: HEIGHT,
+  boidData: boidsTextureA
 });
 
 /*

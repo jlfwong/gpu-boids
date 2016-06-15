@@ -31,6 +31,7 @@ export default class GPGPU {
     // Uncomment to get stack traces for GL library call failures.
     // this._gl = wrapGlDebug(this._gl);
     this._gl.getExtension("OES_texture_float");
+    // TODO(jlfwong): Assert we have all the GL support we need
   }
 
   /**
@@ -39,7 +40,7 @@ export default class GPGPU {
    * If you wish to use it as an output, you'll need to make an associated
    * framebuffer using makeFramebuffer.
    */
-  makeTexture(width, height, dataType=gl.FLOAT, data=null) {
+  makeTexture(width, height, data=null, dataType=WebGLRenderingContext.FLOAT) {
     const gl = this._gl;
 
     const texture = gl.createTexture();
@@ -59,8 +60,8 @@ export default class GPGPU {
       0,        // Always 0 in OpenGL ES.
       gl.RGBA,  // Format for each pixel.
       gl.FLOAT, // Data type for each chanel.
-      null);    // Image data in the described format, or null.
-n
+      data);    // Image data in the described format, or null.
+
     // Unbind the texture.
     gl.bindTexture(gl.TEXTURE_2D, null);
 
@@ -255,7 +256,7 @@ n
 
       if (value instanceof WebGLTexture) {
         gl.activeTexture(gl[`TEXTURE${textureId}`]);
-        gl.bindTexture(gl.TEXTURED_2D, value);
+        gl.bindTexture(gl.TEXTURE_2D, value);
         gl.uniform1i(handle, textureId);
         textureId++;
       } else {
@@ -270,7 +271,7 @@ n
 
     gl.useProgram(program);
 
-    this.setUniforms(uniforms);
+    this.setUniforms(program, uniforms);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
