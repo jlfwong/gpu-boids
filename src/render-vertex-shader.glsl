@@ -11,6 +11,4 @@ void main() {
   //
   // For rendering purposes, we don't care about speed
   gl_Position = vec4(thisBoidData.r, thisBoidData.g, 0, 1);
-
-  gl_PointSize = 3.0;
 }

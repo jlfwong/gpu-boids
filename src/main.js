@@ -15,7 +15,7 @@ canvas.height = HEIGHT;
 const gl = canvas.getContext("webgl");
 const gpgpu = new GPGPU(gl);
 
-const SQRT_N_BOIDS = 128;
+const SQRT_N_BOIDS = 64;
 const N_BOIDS = SQRT_N_BOIDS * SQRT_N_BOIDS;
 
 // We'll represent each boid by a tuple of floats (x, y, vx, vy), where (x, y)
@@ -24,9 +24,9 @@ const initialBoidData = new Float32Array(4 * N_BOIDS);
 
 for (let i = 0; i < N_BOIDS; i++) {
   const pos = i * 4;
-  initialBoidData[pos + 0] = 2 * Math.random() - 1;  // initial x position
-  initialBoidData[pos + 1] = 2 * Math.random() - 1; // initial y position
-  initialBoidData[pos + 2] = 0; // initial x speed
+  initialBoidData[pos + 0] = 2 * Math.random() - 1;
+  initialBoidData[pos + 1] = 2 * Math.random() - 1;
+  initialBoidData[pos + 2] = 0.01; // initial x speed
   initialBoidData[pos + 3] = 0; // initial y speed
 }
 
@@ -75,39 +75,45 @@ for (let i = 0; i < N_BOIDS; i++) {
   renderVertexData[pos + 1] = Math.floor(i / SQRT_N_BOIDS) / SQRT_N_BOIDS;
 }
 
-const tick = () => {
-  gpgpu.useStandardGeometry(boidTimeStepProgram);
-  gpgpu.standardRender(boidTimeStepProgram, {
-    width: WIDTH,
-    height: HEIGHT,
-    boidData: boidsTextureIn
-  }, boidsFramebufferOut);
-
-  // Swap input and output
-  /*
-  [boidsTextureIn, boidsTextureOut] = [boidsTextureOut, boidsTextureIn];
-  [boidsFramebufferIn, boidsFramebufferOut] = [boidsFramebufferOut,
-                                               boidsFramebufferIn]
-                                               */
-
+const render = () => {
+  gl.viewport(0, 0, WIDTH, HEIGHT);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.useProgram(renderProgram);
   gpgpu.setUniforms(renderProgram, {
     boidData: boidsTextureOut
   });
-  // TODO(jlfwong): Is thre any way to avoid doing this every time? To construct
+
+  // TODO(jlfwong): Is there any way to avoid doing this every time? To construct
   // the buffer once and re-use it when needed?
   gl.bindBuffer(gl.ARRAY_BUFFER, renderVertexBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, renderVertexData, gl.STATIC_DRAW);
   gl.enableVertexAttribArray(boidCoordHandle);
   gl.vertexAttribPointer(boidCoordHandle,
-                          2, // boidCoordHandle is a vec2
-                          gl.FLOAT,
-                          gl.FALSE,
-                          2 * 4, // Every vertex has 2 float components
-                          0 // boidCoord is the only attribute in the array buffer
-                          );
+                         2, // boidCoordHandle is a vec2
+                         gl.FLOAT,
+                         gl.FALSE,
+                         2 * 4, // Every vertex has 2 float components
+                         0 // boidCoord is the only attribute in the array buffer
+                         );
   gl.drawArrays(gl.GL_POINTS, 0, N_BOIDS);
+};
 
+const step = () => {
+  gl.viewport(0, 0, SQRT_N_BOIDS, SQRT_N_BOIDS);
+  gpgpu.useStandardGeometry(boidTimeStepProgram);
+  gpgpu.standardRender(boidTimeStepProgram, {
+    boidData: boidsTextureIn
+  }, boidsFramebufferOut);
+
+  // Swap input and output
+  [boidsTextureIn, boidsTextureOut] = [boidsTextureOut, boidsTextureIn];
+  [boidsFramebufferIn, boidsFramebufferOut] = [boidsFramebufferOut,
+                                               boidsFramebufferIn]
+};
+
+const tick = () => {
+  step();
+  render();
   requestAnimationFrame(tick);
 };
 

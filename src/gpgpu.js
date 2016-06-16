@@ -221,10 +221,10 @@ export default class GPGPU {
     // with gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4): This defines 4 vertices in
     // an order that results in drawing a square using 2 triangles.
     const standardVertices = new Float32Array([
-      -1.0,  1.0, 0.0, 0.0, 0.0, // upper left
-      -1.0, -1.0, 0.0, 0.0, 1.0, // lower left
-      1.0,   1.0, 0.0, 1.0, 0.0, // upper right
-      1.0,  -1.0, 0.0, 1.0, 1.0  // lower right
+      -1.0,  1.0, 0.0, 0.0, 1.0, // upper left
+      -1.0, -1.0, 0.0, 0.0, 0.0, // lower left
+      1.0,   1.0, 0.0, 1.0, 1.0, // upper right
+      1.0,  -1.0, 0.0, 1.0, 0.0  // lower right
     ]); 
 
     const vertexDataBuffer = gl.createBuffer();
@@ -309,17 +309,12 @@ export default class GPGPU {
     const gl = this._gl;
 
     gl.useProgram(program);
-
     this.setUniforms(program, uniforms);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
     // Render triangle strips for the 4 vertices defined in useStandardGeometry
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    // TODO(jlfwong): Revert framebuffer to what it was before instead of just
-    // clearing it
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 };
 
