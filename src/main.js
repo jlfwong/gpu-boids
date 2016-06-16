@@ -1,5 +1,7 @@
 import GPGPU from './gpgpu.js';
 import boidTimeStepFragmentShaderSource from './boid-time-step.glsl';
+import renderVertexShaderSource from './render-vertex-shader.glsl';
+import renderFragmentShaderSource from './render-fragment-shader.glsl';
 
 const N = 400;
 const WIDTH = N;
@@ -10,44 +12,106 @@ const canvas = document.getElementById("mycanvas");
 canvas.width = WIDTH;
 canvas.height = HEIGHT;
 
-const gpgpu = new GPGPU(canvas);
+const gl = canvas.getContext("webgl");
+const gpgpu = new GPGPU(gl);
 
-const vertexShader = gpgpu.getStandardVertexShader();
-const boidTimeStepFragmentShader = gpgpu.compileFragmentShader(
-                                        boidTimeStepFragmentShaderSource);
+const SQRT_N_BOIDS = 128;
+const N_BOIDS = SQRT_N_BOIDS * SQRT_N_BOIDS;
 
-const program = gpgpu.compileProgram(vertexShader, boidTimeStepFragmentShader);
+// We'll represent each boid by a tuple of floats (x, y, vx, vy), where (x, y)
+// is the position of the boids, and (vx, vy) is the velocity of the boid.
+const initialBoidData = new Float32Array(4 * N_BOIDS);
 
-const initialBoidData = new Float32Array(4 * WIDTH * HEIGHT);
-
-for (let i = 0; i < HEIGHT; i++) {
-  for (let j = 0; j < WIDTH; j++) {
-    const pos = 4 * (i * HEIGHT + j);
-    initialBoidData[pos + 0] = Math.floor(j / 10) % 2 == 0 ? 1 : 0;
-    initialBoidData[pos + 1] = 0;
-    initialBoidData[pos + 2] = 0;
-    initialBoidData[pos + 3] = 1.0;
-  }
+for (let i = 0; i < N_BOIDS; i++) {
+  const pos = i * 4;
+  initialBoidData[pos + 0] = 2 * Math.random() - 1;  // initial x position
+  initialBoidData[pos + 1] = 2 * Math.random() - 1; // initial y position
+  initialBoidData[pos + 2] = 0; // initial x speed
+  initialBoidData[pos + 3] = 0; // initial y speed
 }
 
-const boidsTextureA = gpgpu.makeTexture(WIDTH, HEIGHT, initialBoidData);
-const boidsTextureB = gpgpu.makeTexture(WIDTH, HEIGHT);
+// To calculate each time step, we'll use one texture as input, and one texture
+// as output. To calculate teh next time step without needing to allocate new
+// textures or copy lots of memory, we'll simply flip which one is the input and
+// and which is the output.
+let boidsTextureIn = gpgpu.makeTexture(SQRT_N_BOIDS, SQRT_N_BOIDS,
+                                       initialBoidData);
+let boidsTextureOut = gpgpu.makeTexture(SQRT_N_BOIDS, SQRT_N_BOIDS);
 
-const boidsFramebufferA = gpgpu.makeFramebuffer(boidsTextureA);
-const boidsFramebufferB = gpgpu.makeFramebuffer(boidsTextureB);
+let boidsFramebufferIn = gpgpu.makeFramebuffer(boidsTextureIn);
+let boidsFramebufferOut = gpgpu.makeFramebuffer(boidsTextureOut);
 
-gpgpu.useStandardGeometry(program);
-gpgpu.standardRender(program, {
-  width: WIDTH,
-  height: HEIGHT,
-  boidData: boidsTextureA
-}, boidsFramebufferB);
+// Construct the GLSL program to calculate the next time step for the boids
+const standardVertexShader = gpgpu.getStandardVertexShader();
+const boidTimeStepFragmentShader = gpgpu.compileFragmentShader(
+                                        boidTimeStepFragmentShaderSource);
+const boidTimeStepProgram = gpgpu.compileProgram(standardVertexShader,
+                                                 boidTimeStepFragmentShader);
 
-gpgpu.standardRender(program, {
-  width: WIDTH,
-  height: HEIGHT,
-  boidData: boidsTextureB
-});
+// To render the boids, we'll use a vertex buffer where each vertex is
+// represented by the (x, y) coordinate of the pixel data associated with each
+// boid in the boid state texture.
+//
+// The vertex shader can then convert this coordinate into the texture into the
+// boid's coordinates by looking it up in the texture data.
+//
+// That information is then passed to the fragment shader.
+const renderVertexShader = gpgpu.compileVertexShader(renderVertexShaderSource);
+const renderFragmentShader = gpgpu.compileFragmentShader(renderFragmentShaderSource);
+const renderProgram = gpgpu.compileProgram(renderVertexShader, renderFragmentShader);
+const boidCoordHandle = gpgpu.getAttribLocation(renderProgram, "boidCoord");
+
+// TODO(jlfwong): Could make this much smaller by using a different data type,
+// and also by generating the coordinates from the index in the shader instead
+// of here. Not sure how much it matters.
+const renderVertexData = new Float32Array(2 * N_BOIDS);
+const renderVertexBuffer = gl.createBuffer();
+
+for (let i = 0; i < N_BOIDS; i++) {
+  const pos = i * 2;
+  // We divide both coordinates by SQRT_N_BOIDS to get coordinates between (0,
+  // 0) and (1, 1), which is the coordinate range that textures use.
+  renderVertexData[pos + 0] = (i % SQRT_N_BOIDS) / SQRT_N_BOIDS;
+  renderVertexData[pos + 1] = Math.floor(i / SQRT_N_BOIDS) / SQRT_N_BOIDS;
+}
+
+const tick = () => {
+  gpgpu.useStandardGeometry(boidTimeStepProgram);
+  gpgpu.standardRender(boidTimeStepProgram, {
+    width: WIDTH,
+    height: HEIGHT,
+    boidData: boidsTextureIn
+  }, boidsFramebufferOut);
+
+  // Swap input and output
+  /*
+  [boidsTextureIn, boidsTextureOut] = [boidsTextureOut, boidsTextureIn];
+  [boidsFramebufferIn, boidsFramebufferOut] = [boidsFramebufferOut,
+                                               boidsFramebufferIn]
+                                               */
+
+  gl.useProgram(renderProgram);
+  gpgpu.setUniforms(renderProgram, {
+    boidData: boidsTextureOut
+  });
+  // TODO(jlfwong): Is thre any way to avoid doing this every time? To construct
+  // the buffer once and re-use it when needed?
+  gl.bindBuffer(gl.ARRAY_BUFFER, renderVertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, renderVertexData, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(boidCoordHandle);
+  gl.vertexAttribPointer(boidCoordHandle,
+                          2, // boidCoordHandle is a vec2
+                          gl.FLOAT,
+                          gl.FALSE,
+                          2 * 4, // Every vertex has 2 float components
+                          0 // boidCoord is the only attribute in the array buffer
+                          );
+  gl.drawArrays(gl.GL_POINTS, 0, N_BOIDS);
+
+  requestAnimationFrame(tick);
+};
+
+tick();
 
 /*
 // Read data out of the rendered buffer

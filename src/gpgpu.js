@@ -7,7 +7,7 @@ import wrapGlDebug from './wrap-gl-debug.js';
  * Example usage:
  *
  *    const canvas = document.getElementById("mycanvas");
- *    const gpgpu = new GPGPU(canvas);
+ *    const gpgpu = new GPGPU(canvas.getContext("webgl"));
  *    const vertexShader = gpgpu.getStandardVertexShader();
  *
  *    // Inside the fragment shader, vTextureCoord.s and vTextureCoord.t,
@@ -59,9 +59,12 @@ import wrapGlDebug from './wrap-gl-debug.js';
  *    }, outputFramebuffer);
  */
 export default class GPGPU {
-  constructor(canvas) {
-    this._canvas = canvas;
-    this._gl = canvas.getContext("webgl");
+  /**
+   * TODO(jlfwong): Just pass the webGL context in here, since we never need
+   * access to the canvas directly.
+   */
+  constructor(gl) {
+    this._gl = gl;
     // Uncomment to get stack traces for GL library call failures.
     // this._gl = wrapGlDebug(this._gl);
     this._gl.getExtension("OES_texture_float");
@@ -313,6 +316,10 @@ export default class GPGPU {
 
     // Render triangle strips for the 4 vertices defined in useStandardGeometry
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // TODO(jlfwong): Revert framebuffer to what it was before instead of just
+    // clearing it
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 };
 
