@@ -31,12 +31,22 @@ for (let i = 0; i < HEIGHT; i++) {
 }
 
 const boidsTextureA = gpgpu.makeTexture(WIDTH, HEIGHT, initialBoidData);
+const boidsTextureB = gpgpu.makeTexture(WIDTH, HEIGHT);
+
+const boidsFramebufferA = gpgpu.makeFramebuffer(boidsTextureA);
+const boidsFramebufferB = gpgpu.makeFramebuffer(boidsTextureB);
 
 gpgpu.useStandardGeometry(program);
 gpgpu.standardRender(program, {
   width: WIDTH,
   height: HEIGHT,
   boidData: boidsTextureA
+}, boidsFramebufferB);
+
+gpgpu.standardRender(program, {
+  width: WIDTH,
+  height: HEIGHT,
+  boidData: boidsTextureB
 });
 
 /*

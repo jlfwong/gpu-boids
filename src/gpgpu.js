@@ -13,16 +13,50 @@ import wrapGlDebug from './wrap-gl-debug.js';
  *    // Inside the fragment shader, vTextureCoord.s and vTextureCoord.t,
  *    // in conjunction with width and height will allow you to calculate
  *    // the x and y coordinate of the pixel being output:
+ *    //
  *    //    float x = floor(width*vTextureCoord.s)
  *    //    float y = floor(height*vTextureCoord.t)
+ *    //
+ *    // width and height must be passed as uniforms. See below call to
+ *    // gpgpu.standardRender()
  *    const fragmentShader = gpgpu.compileFragmentShader(...);
  *    const program = gpgpu.compileProgram(vertexShader, fragmentShader);
  *
  *    gpgpu.useStandardGeometry();
  *
  *    // No input textures, render directly to canvas
- *    gpgpu.standardRender(width, height, program);
+ *    // The map of values in the second argument become available as uniforms
+ *    // in both the vertex and fragment shader like so:
+ *    //
+ *    //    uniform float height;
+ *    //    uniform float width;
+ *    //
+ *    gpgpu.standardRender(program, {
+ *      width: canvas.width,
+ *      height: canvas.height
+ *    });
  *
+ *    // Input texture, render directly to canvas
+ *    // Texture available in shaders as:
+ *    //
+ *    //    uniform sampled2D inputTexture;
+ *    //
+ *    const inputData = new Float32Array([...data goes here...]);
+ *    const inputTexture = gpgpu.makeTexture(width, height, inputData);
+ *    gpgpu.standardRender(program, {
+ *      width: canvas.width,
+ *      height: canvas.height,
+ *      inputTexture: inputTexture
+ *    });
+ *
+ *    // Output texture, with input texture
+ *    const outputTexture = gpgpu.makeTexture(width, height);
+ *    const outputFramebuffer = gpgpu.makeFramebuffer(outputTexture);
+ *    gpgpu.standardRender(program, {
+ *      width: canvas.width,
+ *      height: canvas.height,
+ *      inputTexture: inputTexture
+ *    }, outputFramebuffer);
  */
 export default class GPGPU {
   constructor(canvas) {
@@ -71,9 +105,9 @@ export default class GPGPU {
   makeFramebuffer(texture) {
     const gl = this._gl;
 
-    const frameBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, // The target is always a FRAMEBUFFER.
+    const framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0, // We are providing the color buffer.
       gl.TEXTURE_2D, // This is a 2D image texture.
       texture, // The texture.
@@ -83,6 +117,8 @@ export default class GPGPU {
     // TODO(jlfwong): This should really revert to using the previous
     // framebuffer, not the default one.
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    return framebuffer;
   }
 
   compileShader(shaderSource, shaderType) {
