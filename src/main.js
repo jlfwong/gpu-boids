@@ -26,7 +26,7 @@ for (let i = 0; i < N_BOIDS; i++) {
   const pos = i * 4;
   initialBoidData[pos + 0] = 2 * Math.random() - 1;
   initialBoidData[pos + 1] = 2 * Math.random() - 1;
-  initialBoidData[pos + 2] = 0.01; // initial x speed
+  initialBoidData[pos + 2] = 0; // initial x speed
   initialBoidData[pos + 3] = 0; // initial y speed
 }
 
@@ -102,7 +102,8 @@ const step = () => {
   gl.viewport(0, 0, SQRT_N_BOIDS, SQRT_N_BOIDS);
   gpgpu.useStandardGeometry(boidTimeStepProgram);
   gpgpu.standardRender(boidTimeStepProgram, {
-    boidData: boidsTextureIn
+    boidData: boidsTextureIn,
+    SQRT_N_BOIDS: SQRT_N_BOIDS
   }, boidsFramebufferOut);
 
   // Swap input and output
