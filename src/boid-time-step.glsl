@@ -7,10 +7,8 @@ precision mediump float;
 uniform sampler2D boidData;
 varying vec2 vTextureCoord;
 
-// TODO(jlfwong): Is there any way to specify this from main.js instead?
-// I guess I could do a regex replace before compilation...
-// uniform float SQRT_N_BOIDS;
-const int SQRT_N_BOIDS = 64;
+// SQRT_N_BOIDS is injected into the fragment shader before compilation
+const int SQRT_N_BOIDS = $SQRT_N_BOIDS$;
 const int N_BOIDS = SQRT_N_BOIDS * SQRT_N_BOIDS;
 
 vec4 boidDataAtPos(int rowIndex, int colIndex) {

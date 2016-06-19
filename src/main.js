@@ -1,11 +1,16 @@
+import Stats from 'stats.js';
+
 import GPGPU from './gpgpu.js';
 import boidTimeStepFragmentShaderSource from './boid-time-step.glsl';
 import renderVertexShaderSource from './render-vertex-shader.glsl';
 import renderFragmentShaderSource from './render-fragment-shader.glsl';
 
-const N = 400;
-const WIDTH = N;
-const HEIGHT = N;
+const stats = new Stats();
+stats.showPanel(0);
+document.body.appendChild(stats.dom);
+
+const WIDTH = window.innerWidth;
+const HEIGHT = window.innerHeight;
 
 const canvas = document.getElementById("mycanvas");
 
@@ -44,7 +49,9 @@ let boidsFramebufferOut = gpgpu.makeFramebuffer(boidsTextureOut);
 // Construct the GLSL program to calculate the next time step for the boids
 const standardVertexShader = gpgpu.getStandardVertexShader();
 const boidTimeStepFragmentShader = gpgpu.compileFragmentShader(
-                                        boidTimeStepFragmentShaderSource);
+                                      boidTimeStepFragmentShaderSource.replace(
+                                        "$SQRT_N_BOIDS$",
+                                        "" + SQRT_N_BOIDS));
 const boidTimeStepProgram = gpgpu.compileProgram(standardVertexShader,
                                                  boidTimeStepFragmentShader);
 
@@ -113,8 +120,10 @@ const step = () => {
 };
 
 const tick = () => {
+  stats.begin();
   step();
   render();
+  stats.end();
   requestAnimationFrame(tick);
 };
 
