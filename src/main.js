@@ -26,8 +26,8 @@ for (let i = 0; i < N_BOIDS; i++) {
   const pos = i * 4;
   initialBoidData[pos + 0] = 2 * Math.random() - 1;
   initialBoidData[pos + 1] = 2 * Math.random() - 1;
-  initialBoidData[pos + 2] = 0; // initial x speed
-  initialBoidData[pos + 3] = 0; // initial y speed
+  initialBoidData[pos + 2] = 0;
+  initialBoidData[pos + 3] = 0;
 }
 
 // To calculate each time step, we'll use one texture as input, and one texture

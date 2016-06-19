@@ -57,13 +57,20 @@ vec2 attraction(vec2 thisPosition) {
     return (ret / float(neighbourCount)) / 100.0;
 }
 
+const float REPULSION_RADIUS = 0.1;
+
+float gt(float a, float b, float t, float f) {
+    // (a > b) ? t : f
+    return mix(f, t, clamp(sign(a - b), 0.0, 1.0));
+}
+
 vec2 wallFear(vec2 thisPosition) {
     return vec2(
-        thisPosition.x < 1.0 ? 0.1 :
-            (thisPosition.x > 1.0 ? -0.1 : 0.0),
-        thisPosition.y < 1.0 ? 0.1 :
-            (thisPosition.y > 1.0 ? -0.1 : 0.0)
-    );
+        (gt(-1.0, thisPosition.x,  1.0, 0.0) +
+         gt(thisPosition.x, 1.0,  -1.0, 0.0)),
+        (gt(-1.0, thisPosition.y,  1.0, 0.0) +
+         gt(thisPosition.y, 1.0,  -1.0, 0.0))
+    ) / 10000.0;
 }
 
 void main() {
