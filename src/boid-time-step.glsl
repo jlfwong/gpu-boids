@@ -58,22 +58,12 @@ vec2 attraction(vec2 thisPosition) {
 }
 
 vec2 wallFear(vec2 thisPosition) {
-    float dvx = 0.0;
-    float dvy = 0.0;
-
-    if (thisPosition.x < -1.0) {
-        dvx = 0.1;
-    } else if (thisPosition.x > 1.0) {
-        dvx = -0.1;
-    }
-
-    if (thisPosition.y < -1.0) {
-        dvy = 0.1;
-    } else if (thisPosition.y > 1.0) {
-        dvy = -0.1;
-    }
-
-    return vec2(dvx, dvy);
+    return vec2(
+        thisPosition.x < 1.0 ? 0.1 :
+            (thisPosition.x > 1.0 ? -0.1 : 0.0),
+        thisPosition.y < 1.0 ? 0.1 :
+            (thisPosition.y > 1.0 ? -0.1 : 0.0)
+    );
 }
 
 void main() {
