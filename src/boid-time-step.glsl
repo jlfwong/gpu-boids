@@ -57,6 +57,25 @@ vec2 attraction(vec2 thisPosition) {
     return (ret / float(neighbourCount)) / 100.0;
 }
 
+vec2 wallFear(vec2 thisPosition) {
+    float dvx = 0.0;
+    float dvy = 0.0;
+
+    if (thisPosition.x < -1.0) {
+        dvx = 0.1;
+    } else if (thisPosition.x > 1.0) {
+        dvx = -0.1;
+    }
+
+    if (thisPosition.y < -1.0) {
+        dvy = 0.1;
+    } else if (thisPosition.y > 1.0) {
+        dvy = -0.1;
+    }
+
+    return vec2(dvx, dvy);
+}
+
 void main() {
     vec4 thisData = texture2D(boidData, vTextureCoord);
     vec2 thisPosition = thisData.rg;
@@ -64,6 +83,6 @@ void main() {
 
     gl_FragColor = vec4(
         thisPosition + thisVelocity,
-        thisVelocity + attraction(thisPosition)
+        thisVelocity + attraction(thisPosition) + wallFear(thisPosition)
     );
 }
