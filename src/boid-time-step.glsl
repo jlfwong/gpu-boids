@@ -10,37 +10,51 @@ varying vec2 vTextureCoord;
 // TODO(jlfwong): Is there any way to specify this from main.js instead?
 // I guess I could do a regex replace before compilation...
 // uniform float SQRT_N_BOIDS;
-const float SQRT_N_BOIDS = 64.0;
-const float N_BOIDS = SQRT_N_BOIDS * SQRT_N_BOIDS;
+const int SQRT_N_BOIDS = 64;
+const int N_BOIDS = SQRT_N_BOIDS * SQRT_N_BOIDS;
 
-vec4 boidDataAtPos(float rowIndex, float colIndex) {
+vec4 boidDataAtPos(int rowIndex, int colIndex) {
 
     // Texture coords are always between (0, 0) and (1, 1), so we normalize by
     // the width (which is equal to the height) of the texture.
     vec2 textureCoordsForIndex = vec2(
-        colIndex / SQRT_N_BOIDS,
-        rowIndex / SQRT_N_BOIDS
+        float(colIndex) / float(SQRT_N_BOIDS),
+        float(rowIndex) / float(SQRT_N_BOIDS)
     );
     return texture2D(boidData, textureCoordsForIndex);
 }
 
-vec2 boidPosition(float rowIndex, float colIndex) {
+vec2 boidPosition(int rowIndex, int colIndex) {
     return boidDataAtPos(rowIndex, colIndex).rg;
 }
 
-vec2 boidVelocity(float rowIndex, float colIndex) {
+vec2 boidVelocity(int rowIndex, int colIndex) {
     return boidDataAtPos(rowIndex, colIndex).ba;
 }
 
+const float ATTRACTION_RADIUS = 0.1;
+
 vec2 attraction(vec2 thisPosition) {
+    int thisRowIndex = int(vTextureCoord.s * float(SQRT_N_BOIDS));
+    int thisColIndex = int(vTextureCoord.t * float(SQRT_N_BOIDS));
+
     vec2 ret = vec2(0.0, 0.0);
-    for (float i = 0.0; i < SQRT_N_BOIDS; i++) {
-        for (float j = 0.0; j < SQRT_N_BOIDS; j++) {
-            // TODO(jlfwong): Skip position of current boid
-            ret += boidPosition(i, j);
+    int neighbourCount = 0;
+    for (int i = 0; i < int(SQRT_N_BOIDS); i++) {
+        for (int j = 0; j < int(SQRT_N_BOIDS); j++) {
+            if (i == thisRowIndex && j == thisColIndex) {
+                continue;
+            }
+            vec2 boidPos = boidPosition(i, j);
+            vec2 gap = boidPos - thisPosition;
+
+            if (length(gap) < ATTRACTION_RADIUS) {
+                neighbourCount += 1;
+                ret += gap;
+            }
         }
     }
-    return ((ret / N_BOIDS) - thisPosition) / 10000.0;
+    return (ret / float(neighbourCount)) / 100.0;
 }
 
 void main() {
