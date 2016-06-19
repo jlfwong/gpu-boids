@@ -13,42 +13,34 @@ varying vec2 vTextureCoord;
 const float SQRT_N_BOIDS = 64.0;
 const float N_BOIDS = SQRT_N_BOIDS * SQRT_N_BOIDS;
 
-vec4 boidDataAtIndex(float boidIndex) {
-    float rowIndex = floor(boidIndex / SQRT_N_BOIDS);
-    float colIndex = mod(floor(boidIndex), floor(SQRT_N_BOIDS));
+vec4 boidDataAtPos(float rowIndex, float colIndex) {
 
     // Texture coords are always between (0, 0) and (1, 1), so we normalize by
     // the width (which is equal to the height) of the texture.
-    vec2 textureCoords = vec2(
+    vec2 textureCoordsForIndex = vec2(
         colIndex / SQRT_N_BOIDS,
         rowIndex / SQRT_N_BOIDS
     );
-    return texture2D(boidData, textureCoords);
+    return texture2D(boidData, textureCoordsForIndex);
 }
 
-vec2 boidPosition(float boidIndex) {
-    return boidDataAtIndex(boidIndex).rg;
+vec2 boidPosition(float rowIndex, float colIndex) {
+    return boidDataAtPos(rowIndex, colIndex).rg;
 }
 
-vec2 boidVelocity(float boidIndex) {
-    return boidDataAtIndex(boidIndex).ba;
+vec2 boidVelocity(float rowIndex, float colIndex) {
+    return boidDataAtPos(rowIndex, colIndex).ba;
 }
 
-vec2 attraction() {
-    float x = vTextureCoord.s * SQRT_N_BOIDS;
-    float y = vTextureCoord.t * SQRT_N_BOIDS;
-
-    float thisBoidIndex = y * SQRT_N_BOIDS + x;
-    vec2 thisBoidPosition = boidPosition(thisBoidIndex);
-
+vec2 attraction(vec2 thisPosition) {
     vec2 ret = vec2(0.0, 0.0);
-    for (float i = 0.0; i < N_BOIDS; i++) {
-        if (floor(i) == floor(thisBoidIndex)) {
-            continue;
+    for (float i = 0.0; i < SQRT_N_BOIDS; i++) {
+        for (float j = 0.0; j < SQRT_N_BOIDS; j++) {
+            // TODO(jlfwong): Skip position of current boid
+            ret += boidPosition(i, j);
         }
-        ret += boidPosition(i) - thisBoidPosition;
     }
-    return (ret / (N_BOIDS - 1.0)) / 10000.0;
+    return ((ret / N_BOIDS) - thisPosition) / 10000.0;
 }
 
 void main() {
@@ -58,6 +50,6 @@ void main() {
 
     gl_FragColor = vec4(
         thisPosition + thisVelocity,
-        thisVelocity + attraction()
+        thisVelocity + attraction(thisPosition)
     );
 }
