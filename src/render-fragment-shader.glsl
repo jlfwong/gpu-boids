@@ -4,7 +4,8 @@ precision highp float;
 precision mediump float;
 #endif
 
+varying vec4 vPointColor;
+
 void main() {
-  // Render boids as solid black
-  gl_FragColor = vec4(0, 0, 0, 1);
+  gl_FragColor = vPointColor;
 }

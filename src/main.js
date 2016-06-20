@@ -20,7 +20,7 @@ canvas.height = HEIGHT;
 const gl = canvas.getContext("webgl");
 const gpgpu = new GPGPU(gl);
 
-const SQRT_N_BOIDS = 64;
+const SQRT_N_BOIDS = 256;
 const N_BOIDS = SQRT_N_BOIDS * SQRT_N_BOIDS;
 
 // We'll represent each boid by a tuple of floats (x, y, vx, vy), where (x, y)
@@ -120,6 +120,9 @@ const step = () => {
 };
 
 const tick = () => {
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
   stats.begin();
   step();
   render();

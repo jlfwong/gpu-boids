@@ -38,13 +38,36 @@ vec2 attraction(vec2 thisPosition) {
 
     vec2 ret = vec2(0.0, 0.0);
     int neighbourCount = 0;
-    for (int i = 0; i < int(SQRT_N_BOIDS); i++) {
+    for (int i = 0; i < 1; i++) {
         for (int j = 0; j < int(SQRT_N_BOIDS); j++) {
             if (i == thisRowIndex && j == thisColIndex) {
                 continue;
             }
             vec2 boidPos = boidPosition(i, j);
             vec2 gap = boidPos - thisPosition;
+
+            if (length(gap) < ATTRACTION_RADIUS) {
+                neighbourCount += 1;
+                ret += gap;
+            }
+        }
+    }
+    return (ret / float(neighbourCount)) / 50.0;
+}
+
+vec2 alignment(vec2 thisPosition, vec2 thisVelocity) {
+    int thisRowIndex = int(vTextureCoord.s * float(SQRT_N_BOIDS));
+    int thisColIndex = int(vTextureCoord.t * float(SQRT_N_BOIDS));
+
+    vec2 ret = vec2(0.0, 0.0);
+    int neighbourCount = 0;
+    for (int i = 0; i < 1; i++) {
+        for (int j = 0; j < int(SQRT_N_BOIDS); j++) {
+            if (i == thisRowIndex && j == thisColIndex) {
+                continue;
+            }
+            vec2 boidVel = boidVelocity(i, j);
+            vec2 gap = thisVelocity - boidVel;
 
             if (length(gap) < ATTRACTION_RADIUS) {
                 neighbourCount += 1;
@@ -76,8 +99,14 @@ void main() {
     vec2 thisPosition = thisData.rg;
     vec2 thisVelocity = thisData.ba;
 
-    gl_FragColor = vec4(
-        thisPosition + thisVelocity,
-        thisVelocity + attraction(thisPosition) + wallFear(thisPosition)
-    );
+    vec2 newVelocity = (thisVelocity
+                        + attraction(thisPosition)
+                        + alignment(thisPosition, thisVelocity)
+                        + wallFear(thisPosition));
+
+    // Cap speed at 0.01 units/tick
+    float speed = min(length(newVelocity), 0.01);
+    newVelocity = newVelocity * (speed / length(newVelocity));
+
+    gl_FragColor = vec4(thisPosition + thisVelocity, newVelocity);
 }
